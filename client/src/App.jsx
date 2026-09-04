@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Users, Package, ShoppingCart, FileSignature, Wallet, MessageCircle, CheckCircle2 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Em produção frontend e API são servidos pelo mesmo domínio do Render.\nconst API = import.meta.env.VITE_API_URL || '/api';
 const money = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
 function SignaturePad({ onChange }) {
