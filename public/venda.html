@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Venda B2B</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Finalizar Venda</h2>
+        
+        <form id="formVenda" class="space-y-4">
+            <!-- Dados do Cliente -->
+            <div><label class="block text-sm font-medium text-gray-700">Estabelecimento/Nome</label>
+            <input type="text" id="nome" class="mt-1 block w-full border border-gray-300 rounded-md p-2" required></div>
+            
+            <div><label class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
+            <input type="text" id="documento" class="mt-1 block w-full border border-gray-300 rounded-md p-2" required></div>
+            
+            <div><label class="block text-sm font-medium text-gray-700">WhatsApp</label>
+            <input type="text" id="whatsapp" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="(XX) XXXXX-XXXX" required></div>
+            
+            <div><label class="block text-sm font-medium text-gray-700">Endereço (Rua, Nº, Bairro)</label>
+            <input type="text" id="endereco" class="mt-1 block w-full border border-gray-300 rounded-md p-2" required></div>
+            
+            <!-- Pedido -->
+            <div><label class="block text-sm font-medium text-gray-700">Produtos/Quantidades</label>
+            <textarea id="produtos" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Ex: 50x Pimentas Malagueta" required></textarea></div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium text-gray-700">Valor Total (R$)</label>
+                <input type="number" id="valor" class="mt-1 block w-full border border-gray-300 rounded-md p-2" required></div>
+                
+                <div><label class="block text-sm font-medium text-gray-700">Prazo</label>
+                <select id="prazo" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+                    <option value="7">7 Dias</option>
+                    <option value="15">15 Dias</option>
+                </select></div>
+            </div>
+
+            <!-- Assinatura -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Assinatura do Cliente</label>
+                <canvas id="assinatura" width="300" height="150" class="border-2 border-dashed border-gray-400 w-full bg-gray-50 rounded"></canvas>
+                <button type="button" id="limpar" class="text-sm text-red-500 mt-2">Limpar Assinatura</button>
+            </div>
+
+            <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-md hover:bg-red-700 transition mt-6">
+                Gerar Promissória e Finalizar
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Lógica do Canvas (Assinatura com dedo ou mouse)
+        const canvas = document.getElementById('assinatura');
+        const ctx = canvas.getContext('2d');
+        let desenhando = false;
+
+        // Configura linha
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+
+        const iniciarDesenho = (e) => { desenhando = true; desenhar(e); };
+        const pararDesenho = () => { desenhando = false; ctx.beginPath(); };
+        const desenhar = (e) => {
+            if (!desenhando) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
+            ctx.lineTo(clienteX - rect.left, clienteY - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(clienteX - rect.left, clienteY - rect.top);
+        };
+
+        // Eventos Mouse/Touch
+        canvas.addEventListener('mousedown', iniciarDesenho);
+        canvas.addEventListener('mouseup', pararDesenho);
+        canvas.addEventListener('mousemove', desenhar);
+        canvas.addEventListener('touchstart', iniciarDesenho, {passive: false});
+        canvas.addEventListener('touchend', pararDesenho);
+        canvas.addEventListener('touchmove', desenhar, {passive: false});
+
+        document.getElementById('limpar').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Enviar Dados para o Backend
+        document.getElementById('formVenda').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.innerHTML = 'Processando...'; btn.disabled = true;
+
+            const assinaturaBase64 = canvas.toDataURL('image/png');
+
+            const payload = {
+                cliente: {
+                    nome: document.getElementById('nome').value,
+                    documento: document.getElementById('documento').value,
+                    whatsapp: document.getElementById('whatsapp').value,
+                    endereco: document.getElementById('endereco').value
+                },
+                pedido: {
+                    produtos: document.getElementById('produtos').value,
+                    valorTotal: document.getElementById('valor').value,
+                    prazo: document.getElementById('prazo').value
+                },
+                assinaturaBase64
+            };
+
+            try {
+                const res = await fetch('/api/finalizar-venda', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                alert(data.mensagem);
+                e.target.reset();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            } catch (err) {
+                alert('Erro ao enviar pedido.');
+            } finally {
+                btn.innerHTML = 'Gerar Promissória e Finalizar'; btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
