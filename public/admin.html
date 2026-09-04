@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADM - Vendas Atacado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Painel Administrativo</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Últimas Vendas Registradas</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-800 text-white">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Data</th>
+                            <th class="py-2 px-4 text-left">Cliente</th>
+                            <th class="py-2 px-4 text-left">Valor</th>
+                            <th class="py-2 px-4 text-left">Prazo</th>
+                            <th class="py-2 px-4 text-left">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaVendas" class="text-gray-700">
+                        <tr><td colspan="5" class="py-4 text-center">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function carregarDashboard() {
+            try {
+                const res = await fetch('/api/dashboard');
+                const data = await res.json();
+                const tbody = document.getElementById('tabelaVendas');
+                
+                if (data.vendas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center">Nenhuma venda registrada ainda.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.vendas.map(venda => `
+                    <tr class="border-b">
+                        <td class="py-2 px-4">${new Date(venda.dataCompra).toLocaleDateString('pt-BR')}</td>
+                        <td class="py-2 px-4 font-medium">${venda.cliente.nome}</td>
+                        <td class="py-2 px-4 text-green-600 font-bold">R$ ${venda.pedido.valorTotal}</td>
+                        <td class="py-2 px-4">${venda.pedido.prazo} dias</td>
+                        <td class="py-2 px-4"><span class="bg-yellow-200 text-yellow-800 py-1 px-3 rounded-full text-xs">${venda.status}</span></td>
+                    </tr>
+                `).reverse().join('');
+            } catch (err) {
+                console.error('Erro ao carregar dashboard', err);
+            }
+        }
+        carregarDashboard();
+        // Atualiza a cada 10 segundos
+        setInterval(carregarDashboard, 10000); 
+    </script>
+</body>
+</html>
